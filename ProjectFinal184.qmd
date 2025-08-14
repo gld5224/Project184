@@ -1,0 +1,164 @@
+---
+title: "Project 184"
+format: pdf
+editor: visual
+---
+
+# Fitness Trends: By Gavin Dunlap
+
+## Introduction
+
+I have recently been on a weight loss/muscle gain journey and have been wondering many questions to myself. What should I do to make myself healthier? How much should I run?What should I eat? How much should I sleep? Using the data sets that I have today, I want to answer these questions. The data sets I gave today give me information on fitness data, wellness data, running data, and caloric burn data.
+
+## Background Information
+
+My main data set, Fitness Tracker, is a synthetic data set used to provide information on users mobility and lifestyles through apps and wearable devices. I will be using this data more for sleep data, working out, and mood. My secondary data set, Running Calorie Burn, is being used for caloric information, running statistics, and weight.
+
+## Data Summary
+
+My main data set and secondary data set were both collected from Kaggle. These datasets were created by the users AJ and Emin. I will be focusing on the fitness based columns, such as BMI, running data, caloric burning, and mood.
+
+## EDA
+
+```{r}
+ggplot(combined, aes(x = BMI, y = `Calories Burned`)) +
+  geom_point(aes(color = distance_category)) +
+  labs(title = "BMI vs Calories Burned", x = "BMI", y = "Calories Burned") +
+  theme_minimal()
+```
+
+This graph shows us a comparison of BMI and calories burned with the distance traveled running being used as the indicator. The information given from this isn't extremely helpful, but it does show us people around 24 BMI tend to travel much farther than people with higher and lower BMI.
+
+```{r}
+ggplot(combined, aes(x = workout_type, y = sleep_hours, fill = workout_type)) +
+  geom_boxplot() +
+  labs(title = "Sleep Hours by Workout Type", x = "Workout Type", y = "Sleep Hours") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+This code shows us how well people sleep depending on what kind of workouts they do. This information asks questions while also raising a few more. It shows that when working out, people need less than average as the normal person (8 hours) due to their better perseverance of energy except for cyclists. This is interesting because this shows that cycling could potentially lead to better energy outcomes.
+
+```{r}
+ggplot(combined, aes(x = distance_km, fill = distance_category)) +
+  geom_histogram(binwidth = 1, alpha = 0.7, position = "identity") +
+  labs(title = "Distribution of Distances Covered", x = "Distance (km)", y = "Count") +
+  theme_minimal()
+```
+
+Finally, this graph shows us how much people run compared to each other distance-wise. At first, you may not understand the importance of this, but the best thing to observe here is that these people are reasonably healthy. I point this out because this is showing that a good point to understand is that running far distances is showing to be healthier than short distances, as more people are doing it.
+
+```{r}
+summary_table <- combined %>%
+  group_by(distance_category) %>%
+  summarise(
+    avg_calories = mean(`Calories Burned`, na.rm = TRUE),
+    avg_distance = mean(distance_km, na.rm = TRUE),
+    avg_sleep = mean(sleep_hours, na.rm = TRUE),
+    .groups = "drop"
+  )
+kable(summary_table, caption = "Average Calories, Distance, and Sleep by Distance Category")
+```
+
+This gives us a nice table for information on distance covered and its effects on calories, average running from previous times, and sleep amount. It is cool to see that the medium distances lead to the shortest sleep times.
+
+```{r}
+
+top_bmi <- combined %>%
+  arrange(desc(BMI)) %>%
+  select(BMI, `Weight(kg)`, distance_km, `Calories Burned`) %>%
+  slice_head(n = 5)
+kable(top_bmi, caption = "Top 5 Participants by BMI")
+```
+
+This table was for personal interest to see if people with more mass burn more calories and if they would run farther or shorter. I am very surprised with these results, as it does not give us any clear information for what I am asking.
+
+## Conclusion
+
+In the end, I have received answers to questions I was not asking, but this does not mean they weren't helpful. First if all, running depends on the person. No matter what, running is a healthy thing to do and shows positive benefits to achieving, but some people may benefit just as much as another from running a quarter of a distance. There is no set number of KM someone should run. Second, cycling may be a great option for people trying to get into fitness. The trend of people who cycle sleep less can be seen as a positive. This is due because if someone needs less sleep while being active than their body is good at managing energy and is keeping itself healthy. If someone can spend more hours of the day awake because of a lifestyle choice then that is a good choice in my book. Finally, and a question I am happy to have answered, BMI does not indicate a unhealthy lifestyle. I have recorded people with very high BM's who were extremely fit, and people with "good" BM's who were not healthy compared to others. In the end, there is no correct way to be healthy, but there are correct choice you can make.
+
+### References
+
+<https://www.nhlbi.nih.gov/health/sleep/how-much-sleep#:~:text=Experts%20recommend%20that%20adults%20sleep,or%20more%20hours%20a%20night.>
+
+### Code Appendix
+
+```{r}
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(knitr)
+
+
+
+
+unzip("C:/Users/Gavin/Downloads/archive.zip", list = TRUE)
+unzip("C:/Users/Gavin/Downloads/archive.zip", files = "fitness_tracker_dataset.csv", exdir = tempdir())
+library(readr)
+my_data <- read_csv(file.path(tempdir(), "fitness_tracker_dataset.csv"))
+head(my_data)
+
+
+unzip("C:/Users/Gavin/Downloads/archive (1).zip", list = TRUE)
+unzip("C:/Users/Gavin/Downloads/archive (1).zip", files = "calories_burned_data.csv", exdir = tempdir())
+library(readr)
+calories_data <- read_csv(file.path(tempdir(), "calories_burned_data.csv"))
+head(calories_data)
+
+
+
+fitness <- my_data %>%
+  select(distance_km, sleep_hours, workout_type, mood)
+
+calories <- calories_data %>%
+  select(`Weight(kg)`, BMI, `Calories Burned`)
+
+min_rows <- min(nrow(fitness), nrow(calories))
+combined <- bind_cols(fitness[1:min_rows, ], calories[1:min_rows, ])
+
+
+combined <- combined %>%
+  mutate(distance_category = case_when(
+    distance_km < 5 ~ "Short",
+    distance_km >= 5 & distance_km < 10 ~ "Medium",
+    TRUE ~ "Long"
+  ))
+
+
+long_combined <- combined %>%
+  pivot_longer(cols = c(mood, workout_type), names_to = "variable", values_to = "value")
+
+ggplot(combined, aes(x = BMI, y = `Calories Burned`)) +
+  geom_point(aes(color = distance_category)) +
+  labs(title = "BMI vs Calories Burned", x = "BMI", y = "Calories Burned") +
+  theme_minimal()
+
+ggplot(combined, aes(x = workout_type, y = sleep_hours, fill = workout_type)) +
+  geom_boxplot() +
+  labs(title = "Sleep Hours by Workout Type", x = "Workout Type", y = "Sleep Hours") +
+  theme_minimal() +
+  theme(legend.position = "none")
+
+ggplot(combined, aes(x = distance_km, fill = distance_category)) +
+  geom_histogram(binwidth = 1, alpha = 0.7, position = "identity") +
+  labs(title = "Distribution of Distances Covered", x = "Distance (km)", y = "Count") +
+  theme_minimal()
+
+summary_table <- combined %>%
+  group_by(distance_category) %>%
+  summarise(
+    avg_calories = mean(`Calories Burned`, na.rm = TRUE),
+    avg_distance = mean(distance_km, na.rm = TRUE),
+    avg_sleep = mean(sleep_hours, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+kable(summary_table, caption = "Average Calories, Distance, and Sleep by Distance Category")
+
+top_bmi <- combined %>%
+  arrange(desc(BMI)) %>%
+  select(BMI, `Weight(kg)`, distance_km, `Calories Burned`) %>%
+  slice_head(n = 5)
+kable(top_bmi, caption = "Top 5 Participants by BMI")
+```
